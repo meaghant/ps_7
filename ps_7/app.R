@@ -5,14 +5,15 @@ library(ggplot2)
 library(ggrepel)
 library(plotly)
 library(ggpubr)
+library(readr)
 
-forecast_results_joined_shiny <- read_rds("forecast_results_joined.rds")
-
+shiny_forecast_results_joined <- read_rds("forecast_results_joined.rds")
+ 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
    
    # Application title
-   titlePanel("How does Actual Democratic Advantage Vary by Racial Demographics of Polled Respondents?"),
+   titlePanel("How Do Predicted and Actual Democratic Outcomes Vary by Racial Demographics of Polled Respondents?"),
    
    # Sidebar with a slider input for number of bins 
    sidebarLayout(
@@ -36,13 +37,13 @@ server <- function(input, output) {
    output$scatterplot <- renderPlot({
      
      if (input$race_input == "Asian") {
-       asian_plot <- forecast_results_joined_shiny %>%
-         ggplot(aes(x = percent_asian, y = dem_adv, color = pred_dem_outcome)) +
+       asian_plot <- shiny_forecast_results_joined %>%
+         ggplot(aes(x = percent_asian, y = forecast_dem_adv, color = actual_dem_outcome)) +
          geom_point() +
          labs(title = "How does Actual Democratic Advantage Vary by Racial Demographics of Polled Respondents?",
             x = "Percentage of Asian Poll Respondents",
-            y = "Actual Democratic Advantage",
-            color = "Predicted Democratic Advantage")
+            y = "Predicted Democratic Advantage",
+            color = "Actual Democratic Outcome")
        
          print(asian_plot)
          
@@ -55,13 +56,13 @@ server <- function(input, output) {
      }
          
      else if (input$race_input == "Black") {
-       black_plot <- forecast_results_joined_shiny %>%
-         ggplot(aes(x = percent_black, y = dem_adv, color = pred_dem_outcome)) +
+       black_plot <- shiny_forecast_results_joined %>%
+         ggplot(aes(x = percent_black, y = forecast_dem_adv, color = actual_dem_outcome)) +
          geom_point() +
          labs(title = "How does Actual Democratic Advantage Vary by Racial Demographics of Polled Respondents?",
               x = "Percentage of Black Poll Respondents",
-              y = "Actual Democratic Advantage",
-              color = "Predicted Democratic Advantage")
+              y = "Predicted Democratic Advantage",
+              color = "Actual Democratic Outcome")
        
        print(black_plot)
        
@@ -74,13 +75,13 @@ server <- function(input, output) {
      }
      
      else if (input$race_input == "White") {
-       white_plot <- forecast_results_joined_shiny %>%
-         ggplot(aes(x = percent_white, y = dem_adv, color = pred_dem_outcome)) +
+       white_plot <- shiny_forecast_results_joined %>%
+         ggplot(aes(x = percent_white, y = forecast_dem_adv, color = actual_dem_outcome)) +
          geom_point() +
          labs(title = "How does Actual Democratic Advantage Vary by Racial Demographics of Polled Respondents?",
               x = "Percentage of White Poll Respondents",
-              y = "Actual Democratic Advantage",
-              color = "Predicted Democratic Advantage")
+              y = "Predicted Democratic Advantage",
+              color = "Actual Democratic Outcome")
        
        print(white_plot)
        
@@ -93,13 +94,13 @@ server <- function(input, output) {
      }
      
      else if (input$race_input == "Other") {
-       other_plot <- forecast_results_joined_shiny %>%
-         ggplot(aes(x = percent_other, y = dem_adv, color = pred_dem_outcome)) +
+       other_plot <- shiny_forecast_results_joined %>%
+         ggplot(aes(x = percent_other, y = forecast_dem_adv, color = actual_dem_outcome)) +
          geom_point() +
          labs(title = "How does Actual Democratic Advantage Vary by Racial Demographics of Polled Respondents?",
               x = "Percentage of Poll Respondents Identifying as other than Asian, Black, or White",
-              y = "Actual Democratic Advantage", 
-              color = "Predicted Democratic Advantage")
+              y = "Predicted Democratic Advantage",
+              color = "Actual Democratic Outcome")
        
        print(other_plot)
        

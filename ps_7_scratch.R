@@ -1,6 +1,7 @@
 library(shiny)
 library(tidyverse)
 library(fs)
+library(readr)
 
 # Read in forecast data
 
@@ -41,7 +42,7 @@ forecast_race <- forecast %>%
          percent_other = Other/total) %>%
   select(state_district, percent_asian, percent_black, percent_white, percent_other)
 
-forecast_dem_outcome <- forecast %>%
+forecast_adv <- forecast %>%
   select(source, response, final_weight) %>%
   mutate(senate = str_detect(source, "sen")) %>%
   filter(senate == "FALSE",
@@ -55,13 +56,11 @@ forecast_dem_outcome <- forecast %>%
          wave = substr(state_district_wave, 6, 6)) %>%
   filter(wave == 3) %>%
   mutate(total = Rep + Dem + Und,
-         pred_dem_adv = (Dem - Rep) / total,
-         pred_dem_outcome = case_when(pred_dem_adv > 0 ~ "win",
-                                  pred_dem_adv < 0 ~ "lose")) %>%
+         forecast_dem_adv = (Dem - Rep) / total) %>%
   ungroup() %>%
-  select(state_district, pred_dem_outcome) 
+  select(state_district, forecast_dem_adv) 
 
-forecast_joined <- left_join(forecast_dem_outcome, forecast_race, by = "state_district")
+forecast_joined <- left_join(forecast_adv, forecast_race, by = "state_district")
 
 results <- read_csv("mt_2_results.csv") %>%
   filter(district != "sen",
@@ -69,10 +68,12 @@ results <- read_csv("mt_2_results.csv") %>%
   mutate(state_district = paste(state, district, sep = "")) %>%
   group_by(state_district) %>%
   mutate(total = rep_votes + dem_votes + other_votes,
-         dem_adv = (dem_votes - rep_votes) / total)
+         dem_adv = (dem_votes - rep_votes) / total,
+         actual_dem_outcome = case_when(dem_adv > 0 ~ "win",
+                                 dem_adv < 0 ~ "lose"))
 
 forecast_results_joined <- left_join(forecast_joined, results, by = "state_district") %>%
-  select(state_district, pred_dem_outcome, dem_adv, percent_asian, percent_black, percent_white, percent_other)
+  select(state_district, forecast_dem_adv, actual_dem_outcome, percent_asian, percent_black, percent_white, percent_other)
 
 forecast_results_joined_rds <- forecast_results_joined %>%
   write_rds(path = "forecast_results_joined.rds")
