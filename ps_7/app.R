@@ -2,70 +2,26 @@ library(shiny)
 library(tidyverse)
 library(fs)
 library(ggplot2)
+library(ggrepel)
+library(plotly)
+library(ggpubr)
 
-# Read in forecast data
-
-download.file(url = "https://goo.gl/ZRCBda",
-              destfile = "mt_2_2018-live-poll-results-master.zip",
-              mode = "wb")
-
-unzip("mt_2_2018-live-poll-results-master.zip")
-
-file_names <- dir_ls("2018-live-poll-results-master/data/")
-
-forecast <- map_dfr(file_names, read_csv, .id = "source")
-
-# Read in results data
-
-results <- read_csv("mt_2_results.csv")
-
-# Get rid of Senate/Governor races from forecast and results data. Eliminate N/A responses from desired variables.
-
-forecast_race <- forecast %>%
-  select(source, race_eth) %>%
-  mutate(senate = str_detect(source, "sen")) %>%
-  filter(senate == "FALSE",
-         source != "2018-live-poll-results-master/data/elections-poll-flgov-3.csv") %>%
-  mutate(state_district_wave = str_remove(source, "2018-live-poll-results-master/data/elections-poll-"),
-         state_district_wave = str_remove(state_district_wave, ".csv"),
-         state_district = toupper(substr(state_district_wave, 1, 4)),
-         wave = substr(state_district_wave, 6, 6)) %>%
-  filter(wave == 3) %>%
-  group_by(state_district) %>%
-  count(race_eth) %>%
-  spread(race_eth, n) %>%
-  rename(n_a = "[DO NOT READ] Don't know/Refused") %>%
-  mutate(total = n_a + Asian + Black + White + Other,
-         percent_asian = Asian/total,
-         percent_black = Black/total,
-         percent_white = White/total, 
-         percent_other = Other/total)
-
-results <- read_csv("mt_2_results.csv") %>%
-  filter(district != "sen",
-         district != "gov") %>%
-  mutate(state_district = paste(state, district, sep = "")) %>%
-  group_by(state_district) %>%
-  mutate(total = rep_votes + dem_votes + other_votes,
-         dem_adv = (dem_votes - rep_votes) / total) 
-
-race_joined <- left_join(forecast_race, results, by = "state_district") %>%
-  select(state_district, percent_asian, percent_black, percent_white, percent_other, dem_adv)
+forecast_results_joined_shiny <- read_rds("forecast_results_joined.rds")
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
    
    # Application title
-   titlePanel("Race Ethnicity Data"),
+   titlePanel("How does Actual Democratic Advantage Vary by Racial Demographics of Polled Respondents?"),
    
    # Sidebar with a slider input for number of bins 
    sidebarLayout(
       sidebarPanel(
-        selectInput(
-          inputId = "race_input",
-          label = "Select a race/ethnicity",
-          choices = c("Asian", "Black", "White", "Other")
-      )),
+        selectInput("race_input", 
+                    "Select a Race/Ethnicity to View",
+                    choices = c("Asian", "Black", "White", "Other")),
+        checkboxInput("line", label = "Show Line of Best Fit", value = FALSE)
+      ),
       
       # Show a plot of the generated distribution
       mainPanel(
@@ -79,17 +35,81 @@ server <- function(input, output) {
    
    output$scatterplot <- renderPlot({
      
-     values <- reactiveValues()
-     values$asian <- race_joined$percent_asian
-     values$white <- race_joined$percent_white
-     values$black <- race_joined$percent_black
-    
-     race_joined
-       ggplot(race_joined, aes(x = input$race_input, y = dem_adv)) +
-       geom_point() +
-       labs(title = "How does Actual Democratic Advantage Vary by Racial Demographics of Polled Respondents?",
-            x = "Race",
-            y = "Democratic Advantage")
+     if (input$race_input == "Asian") {
+       asian_plot <- forecast_results_joined_shiny %>%
+         ggplot(aes(x = percent_asian, y = dem_adv, color = pred_dem_outcome)) +
+         geom_point() +
+         labs(title = "How does Actual Democratic Advantage Vary by Racial Demographics of Polled Respondents?",
+            x = "Percentage of Asian Poll Respondents",
+            y = "Actual Democratic Advantage",
+            color = "Predicted Democratic Advantage")
+       
+         print(asian_plot)
+         
+         if (input$line == TRUE) {
+           withline<- asian_plot + 
+             geom_smooth(method = lm, se = FALSE)
+           print(withline)
+         }
+         
+     }
+         
+     else if (input$race_input == "Black") {
+       black_plot <- forecast_results_joined_shiny %>%
+         ggplot(aes(x = percent_black, y = dem_adv, color = pred_dem_outcome)) +
+         geom_point() +
+         labs(title = "How does Actual Democratic Advantage Vary by Racial Demographics of Polled Respondents?",
+              x = "Percentage of Black Poll Respondents",
+              y = "Actual Democratic Advantage",
+              color = "Predicted Democratic Advantage")
+       
+       print(black_plot)
+       
+       if (input$line == TRUE) {
+         withline<- black_plot + 
+           geom_smooth(method = lm, se = FALSE)
+         print(withline)
+       }
+       
+     }
+     
+     else if (input$race_input == "White") {
+       white_plot <- forecast_results_joined_shiny %>%
+         ggplot(aes(x = percent_white, y = dem_adv, color = pred_dem_outcome)) +
+         geom_point() +
+         labs(title = "How does Actual Democratic Advantage Vary by Racial Demographics of Polled Respondents?",
+              x = "Percentage of White Poll Respondents",
+              y = "Actual Democratic Advantage",
+              color = "Predicted Democratic Advantage")
+       
+       print(white_plot)
+       
+       if (input$line == TRUE) {
+         withline<- white_plot + 
+           geom_smooth(method = lm, se = FALSE)
+         print(withline)
+       }
+       
+     }
+     
+     else if (input$race_input == "Other") {
+       other_plot <- forecast_results_joined_shiny %>%
+         ggplot(aes(x = percent_other, y = dem_adv, color = pred_dem_outcome)) +
+         geom_point() +
+         labs(title = "How does Actual Democratic Advantage Vary by Racial Demographics of Polled Respondents?",
+              x = "Percentage of Poll Respondents Identifying as other than Asian, Black, or White",
+              y = "Actual Democratic Advantage", 
+              color = "Predicted Democratic Advantage")
+       
+       print(other_plot)
+       
+       if (input$line == TRUE) {
+         withline<- other_plot + 
+           geom_smooth(method = lm, se = FALSE)
+         print(withline)
+       }
+       
+     }
      
    })
 }
